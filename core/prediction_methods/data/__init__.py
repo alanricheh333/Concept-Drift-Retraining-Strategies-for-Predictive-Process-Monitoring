@@ -1,5 +1,5 @@
-from utils.logfile import LogFile
-from data import Data
+from ..utils.logfile import LogFile
+from .data import Data
 from config import root_directory
 
 BASE_FOLDER = root_directory

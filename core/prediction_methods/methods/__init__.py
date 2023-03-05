@@ -1,4 +1,4 @@
-from methods import Method
+from .method import Method
 
 
 def get_prediction_method(method_name):
@@ -19,11 +19,11 @@ def get_prediction_method(method_name):
     #     return Method("Di Mauro", dimauro.train, dimauro.test, dimauro.update, {"epochs": 200, "early_stop": 10})
 
     elif method_name == "LIN":
-        from methods.Lin import adapter as lin
+        from .Lin import adapter as lin
         return Method("Lin", lin.train, lin.test, lin.update, {"epochs": 200, "early_stop": 10})
     
     elif method_name == "PASQUADIBISCEGLIE":
-        from methods.Pasquadibisceglie import adapter as pasquadibisceglie
+        from .Pasquadibisceglie import adapter as pasquadibisceglie
         return Method("Pasquadibisceglie", pasquadibisceglie.train, pasquadibisceglie.test,
                       pasquadibisceglie.update, {"epochs": 200, "early_stop": 10})
     

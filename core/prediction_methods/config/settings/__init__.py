@@ -1,4 +1,4 @@
-from setting import Setting
+from .setting import Setting
 
 STANDARD = Setting(10, "train-test", True, False, 70, 10)
 

@@ -1,9 +1,9 @@
-from metrics.accuracy import Accuracy
-from metrics.cumm_accuracy import Cumm_Accuracy
-from metrics.period_accuracy import Period_Accuracy
-from metrics.brier import Brier
-from metrics.precision import Precision
-from metrics.recall import Recall
+from .accuracy import Accuracy
+from .cumm_accuracy import Cumm_Accuracy
+from .period_accuracy import Period_Accuracy
+from .brier import Brier
+from .precision import Precision
+from .recall import Recall
 
 ACCURACY = Accuracy()
 CUMM_ACCURACY = Cumm_Accuracy()

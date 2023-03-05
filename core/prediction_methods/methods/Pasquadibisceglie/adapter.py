@@ -6,7 +6,7 @@ import numpy as np
 import multiprocessing as mp
 from functools import partial
 
-from utils.logfile import LogFile
+from ...utils.logfile import LogFile
 
 seed = 123
 np.random.seed(seed)

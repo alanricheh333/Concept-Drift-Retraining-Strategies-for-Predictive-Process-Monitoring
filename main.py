@@ -1,11 +1,11 @@
 from enum import Enum
 from numpy import NaN
-import Data
-import Predictions.setting as pred
-import Predictions.metric as met
-import Methods
-from Utils.LogFile import LogFile
-from CP import concept_drift
+import core.prediction_methods.data as data
+import core.prediction_methods.config.settings as pred
+import core.prediction_methods.config.metrics as met
+import core.prediction_methods.methods as methods
+from core.prediction_methods.utils.logfile import LogFile
+#from CP import concept_drift
 import pm4py
 from config import root_directory
 import pandas as pd
@@ -151,7 +151,7 @@ def predict_after_detection(method: TrainMethod = TrainMethod.SDL, train_file:st
 
     if method is TrainMethod.SDL:
         #start with new data
-        train_data = Data.get_data(train_file)
+        train_data = data.get_data(train_file)
 
         #select predection method
         settings = pred.SDL
@@ -162,11 +162,11 @@ def predict_after_detection(method: TrainMethod = TrainMethod.SDL, train_file:st
         train_data.prepare(settings)
 
         #getting the prediction method parameters
-        method = Methods.get_prediction_method("SDL")
+        method = methods.get_prediction_method("SDL")
 
         
         #get the test data
-        test_data = Data.get_data(test_file)
+        test_data = data.get_data(test_file)
         
         #select predection method for testing
         test_settings = pred.SDL
@@ -187,7 +187,7 @@ def predict_after_detection(method: TrainMethod = TrainMethod.SDL, train_file:st
 
     elif method is TrainMethod.LIN:
         #start with new data
-        train_data = Data.get_data(train_file)
+        train_data = data.get_data(train_file)
 
         #select predection method
         settings = pred.LIN
@@ -198,11 +198,11 @@ def predict_after_detection(method: TrainMethod = TrainMethod.SDL, train_file:st
         train_data.prepare(settings)
 
         #getting the prediction method parameters
-        method = Methods.get_prediction_method("LIN")
+        method = methods.get_prediction_method("LIN")
 
         
         #get the test data
-        test_data = Data.get_data(test_file)
+        test_data = data.get_data(test_file)
         
         #select predection method for testing
         test_settings = pred.LIN
@@ -223,7 +223,7 @@ def predict_after_detection(method: TrainMethod = TrainMethod.SDL, train_file:st
     
     elif method is TrainMethod.PASQUADIBISCEGLIE:
          #start with new data
-        train_data = Data.get_data(train_file)
+        train_data = data.get_data(train_file)
 
         #normalize date and time for train data
         for idx, row in train_data.logfile.data.iterrows():
@@ -239,11 +239,11 @@ def predict_after_detection(method: TrainMethod = TrainMethod.SDL, train_file:st
         train_data.prepare(settings)
 
         #getting the prediction method parameters
-        method = Methods.get_prediction_method("PASQUADIBISCEGLIE")
+        method = methods.get_prediction_method("PASQUADIBISCEGLIE")
 
         
         #get the test data
-        test_data = Data.get_data(test_file)
+        test_data = data.get_data(test_file)
 
         #nomalize the date and time for test data
         for idx, row in test_data.logfile.data.iterrows():
@@ -275,10 +275,10 @@ def predict_after_detection(method: TrainMethod = TrainMethod.SDL, train_file:st
 
 def predict():
     
-    #data_object = Data.get_data("IOR5k", time="time:timestamp", case="case:concept:name", activity="concept:name", resource="org:resource")
-    #data_object = Data.get_data("sample")
-    data_object = Data.get_data("sww_train")
-    #data_object = Data.get_data("sample_sdl")
+    #data_object = data.get_data("IOR5k", time="time:timestamp", case="case:concept:name", activity="concept:name", resource="org:resource")
+    #data_object = data.get_data("sample")
+    data_object = data.get_data("sww_train")
+    #data_object = data.get_data("sample_sdl")
 
     for idx, row in data_object.logfile.data.iterrows():
         dd = pd.to_datetime(row["completeTime"])
@@ -294,11 +294,11 @@ def predict():
     settings.train_percentage = 100
     data_object.prepare(settings)
 
-    #m = Methods.get_prediction_method("LIN")
-    #m = Methods.get_prediction_method("SDL")
-    m = Methods.get_prediction_method("PASQUADIBISCEGLIE")
+    #m = methods.get_prediction_method("LIN")
+    #m = methods.get_prediction_method("SDL")
+    m = methods.get_prediction_method("PASQUADIBISCEGLIE")
 
-    test_data = Data.get_data("sww_test")
+    test_data = data.get_data("sww_test")
 
     for idx, row in test_data.logfile.data.iterrows():
         dd = pd.to_datetime(row["completeTime"])
@@ -375,7 +375,7 @@ def apr():
 
 if __name__ == '__main__':
     #apr()
-    #predict()
+    predict()
     #detect()
-    predict_after_detection(method= TrainMethod.SDL)
+    #predict_after_detection(method= TrainMethod.SDL)
     #naive_split_data(file_name="BPIC15_1_sorted_new")
