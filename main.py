@@ -336,7 +336,7 @@ def apr():
     drift_detection.detect_drifts("sww_90")
 
 if __name__ == '__main__':
-    apr()
+    #apr()
     predict()
     #detect()
     #predict_after_detection(method= TrainMethod.SDL)

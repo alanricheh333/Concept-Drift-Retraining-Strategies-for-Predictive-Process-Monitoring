@@ -8,9 +8,6 @@ import os
 
 
 def detect_drifts(event_log: str) -> list[SubLog]:
-    
-    ss = os.path.join(os.getcwd(), "core", "concept_drift", "ProDrift2.5.jar")
-    aa = os.path.join(os.getcwd(), "data", "input", event_log+".xes")
 
     process = Popen(['java', '-jar', os.path.join(os.getcwd(), "core", "concept_drift", "ProDrift2.5.jar"), '-fp', os.path.join(os.getcwd(), "data", "input", event_log + ".xes"),
                      '-ddm','events', '-ws', '100', '-ddnft', '0.0', '-dds', 'high', '-cm', 'activity', '-dcnft', '0.0'], stdout=PIPE, stderr=PIPE)
