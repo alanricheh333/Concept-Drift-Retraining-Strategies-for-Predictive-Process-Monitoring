@@ -1,11 +1,11 @@
 from enum import Enum
 from numpy import NaN
-import core.prediction_methods.data as data
+import data
 import core.prediction_methods.config.settings as pred
 import core.prediction_methods.config.metrics as met
 import core.prediction_methods.methods as methods
 from core.prediction_methods.utils.logfile import LogFile
-#from CP import concept_drift
+from core.concept_drift import drift_detection
 import pm4py
 from config import root_directory
 import pandas as pd
@@ -333,48 +333,10 @@ def detect(customized_sampling: bool = False):
 
 
 def apr():
-    
-    process = Popen(['java', '-jar', '/Users/alanalrechah/Desktop/Uni/Thesis/concept-drift-driven-retraining-strategies-for-predictive-process-monitoring/ProDrift2.5.jar', '-fp', '/Users/alanalrechah/Desktop/Uni/Thesis/concept-drift-driven-retraining-strategies-for-predictive-process-monitoring/Data/input/script/sww_90.xes',
-                     '-ddm','events', '-ws', '100', '-ddnft', '0.0', '-dds', 'high', '-cm', 'activity', '-dcnft', '0.0'], stdout=PIPE, stderr=PIPE)
-    
-    result = process.communicate()
-    
-    result_text:str = result[0].decode('utf-8')
-
-    first_split:list = result_text.split('\n\n\n')
-    second_split:list = first_split[0].split('\n\n')
-    
-    drift_text_list = []
-    drift_text_list.append(second_split[1])
-    first_split.pop(0)
-    first_split.remove('')
-    drift_text_list.extend(first_split)
-
-    drifts_dict = {}
-    for item in drift_text_list:
-        important_text:str = item.partition("Drift detected at event: ")[2]
-        data_info = important_text.split(" ", 1)
-        event_num = int(data_info[0])
-        event_date = data_info[1][ data_info[1].find("(")+1 : data_info[1].find(")") ]
-        drifts_dict[event_num] = event_date
-    
-    
-    dataset = pd.read_csv("/Users/alanalrechah/Desktop/Uni/Thesis/concept-drift-driven-retraining-strategies-for-predictive-process-monitoring/Data/sww_90.csv")
-    old_index = 0
-    sublogs = []
-    for key, value in drifts_dict.items():
-        sub = dataset[old_index:key]
-        sublogs.append(sub)
-        old_index = key+1
-
-    #append list sublog
-    sub = dataset[old_index:len(dataset)]
-    sublogs.append(sub)
-
-    print(len(sublogs))
+    drift_detection.detect_drifts("sww_90")
 
 if __name__ == '__main__':
-    #apr()
+    apr()
     predict()
     #detect()
     #predict_after_detection(method= TrainMethod.SDL)

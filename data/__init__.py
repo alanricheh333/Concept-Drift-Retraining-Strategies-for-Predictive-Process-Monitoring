@@ -1,4 +1,4 @@
-from ..utils.logfile import LogFile
+from core.prediction_methods.utils.logfile import LogFile
 from .data import Data
 from config import root_directory
 

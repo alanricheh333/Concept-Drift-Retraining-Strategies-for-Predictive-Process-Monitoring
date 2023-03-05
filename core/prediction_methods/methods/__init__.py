@@ -3,7 +3,7 @@ from .method import Method
 
 def get_prediction_method(method_name):
     if method_name == "SDL":
-        from methods.SDL import sdl
+        from .SDL import sdl
         return Method("SDL", sdl.train, sdl.test, sdl.update, {"epochs": 200, "early_stop": 10})
     # elif method_name == "DBN":
     #     from Methods.EDBN.Train import train, update
