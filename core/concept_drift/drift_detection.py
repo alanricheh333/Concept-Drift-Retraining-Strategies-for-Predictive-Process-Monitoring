@@ -1,19 +1,22 @@
 from enum import Enum
 from subprocess import PIPE, Popen
 import pandas as pd
+
+from core.concept_drift.classes.sampling_methods import OnlyLastSampling, PrioritySampling, UniformSampling
 from .classes.sublog import SubLog
 from pm4py.objects.log.obj import EventLog
 import pm4py
 import os
 from config import root_directory
 import numpy as np
-import copy
 from . import utils
+
 
 
 class SamplingMethod(Enum):
     UNIFORM = "Unifrom"
-    PRIORITY = "Priority"
+    PRIORITY_LAST = "Priority Last"
+    PRIORITY_FIRST = "Priority First"
     ONLY_LAST = "Only Last"
 
 
@@ -26,14 +29,29 @@ class SampleOption(Enum):
 
 
 def get_sampled_log(event_log: str, window_size: str = "100", all_cases: bool = True, cases_percentage: float = 0.6,
-                    sampling_method: SamplingMethod = SamplingMethod.PRIORITY, sampling_option: SampleOption = SampleOption.ONLY_FULL_CASES) -> pd.DataFrame:
+                    sampling_method: SamplingMethod = SamplingMethod.PRIORITY_LAST, sampling_option: SampleOption = SampleOption.ONLY_FULL_CASES) -> pd.DataFrame:
     
     all_sublogs = detect_drifts(event_log=event_log, window_size=window_size)
 
-    if sampling_method == SamplingMethod.PRIORITY:
-        sampled_log = apply_priority_sampling(all_sublogs, cases_percentage, all_cases)
+    if sampling_method == SamplingMethod.PRIORITY_LAST:
+        priority_sampling = PrioritySampling()
+        sublogs_with_weights = priority_sampling.apply_priority_sampling(all_sublogs, True)
 
-    utils.export_sampled_log(sampled_log)    
+    if sampling_method == SamplingMethod.PRIORITY_FIRST:
+        priority_sampling = PrioritySampling()
+        sublogs_with_weights = priority_sampling.apply_priority_sampling(all_sublogs, False)
+    
+    elif sampling_method == SamplingMethod.UNIFORM:
+        uniform_sampling = UniformSampling()
+        sublogs_with_weights = uniform_sampling.apply_uniform_sampling(all_sublogs)
+
+    elif sampling_method == SamplingMethod.ONLY_LAST:
+        only_last_sampling = OnlyLastSampling()
+        sublogs_with_weights = only_last_sampling.apply_only_last_sampling(all_sublogs)
+
+
+    sampled_log = sample_data(sublogs_with_weights, cases_percentage, all_cases)
+    utils.export_sampled_log(sampled_log)
     
     return sampled_log
 
@@ -103,53 +121,6 @@ def detect_drifts(event_log: str, window_size: str = "100") -> list[SubLog]:
 
     print(len(all_sublogs))
     return all_sublogs
-
-
-
-def apply_priority_sampling(sublogs: list[SubLog]) -> list[SubLog]:
-    """
-    Apply priority sampling by giving weights to each sublog
-    Params - sublogs: the list of sublogs
-
-    Returns - list of sublogs afer giving weights
-    """
-    # give an initial weight of 1
-    for sublog in sublogs:
-        sublog.weight = 1
-
-    # get a copy of the sublogs and edit that copy
-    remain_sublogs = copy.deepcopy(sublogs)
-    # apply the recursive priority weighting function
-    sublogs = apply_priority_weighting(sublogs, remain_sublogs)
-
-    return sublogs
-
-
-
-def apply_priority_weighting(all_sublogs: list = [], remaining_sublogs: list = []):
-    """
-    Apply the recursive priority weighting technique
-    Params - all_sublogs: all the sublogs
-             remaining_sublogs: list of the remained unweighted sublogs
-    """
-    # if no remaining sublogs then return the modified all sublogs
-    if len(remaining_sublogs) == 0:
-        return all_sublogs
-
-    # iterate over sublogs and assign half the current weight
-    for i, sublog in enumerate(remaining_sublogs):
-        # check if last item then apply same as preceding item weight so it sums up to 1
-        if len(remaining_sublogs) == 1:
-            sublog.weight = all_sublogs[1].weight
-            all_sublogs[i] = sublog
-            continue
-
-        sublog.weight = sublog.weight * 0.5
-        all_sublogs[i] = sublog
-
-    # delete the last element and then recurse
-    del remaining_sublogs[-1]
-    return apply_priority_weighting(all_sublogs, remaining_sublogs)
 
 
 
