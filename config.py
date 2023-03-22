@@ -1,1 +1,3 @@
-root_directory = "/Users/alanalrechah/Desktop/Uni/Thesis/concept-drift-driven-retraining-strategies-for-predictive-process-monitoring/"
+import os
+
+root_directory = os.getcwd()

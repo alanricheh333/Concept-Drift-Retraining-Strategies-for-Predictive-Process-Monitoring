@@ -333,11 +333,11 @@ def detect(customized_sampling: bool = False):
 
 
 def apr():
-    drift_detection.detect_drifts("sww_90")
+    drift_detection.get_sampled_log("sww_90")
 
 if __name__ == '__main__':
-    #apr()
-    predict()
+    apr()
+    #predict()
     #detect()
     #predict_after_detection(method= TrainMethod.SDL)
     #naive_split_data(file_name="BPIC15_1_sorted_new")

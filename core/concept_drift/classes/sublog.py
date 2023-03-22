@@ -1,4 +1,5 @@
 from pm4py.objects.log.obj import EventLog
+import pandas as pd
 
 class SubLog():
     from_case: int
@@ -6,7 +7,7 @@ class SubLog():
     sub_log: EventLog
     weight: float = 0.0
     sample_num: int
-    event_log = None
+    event_log: pd.DataFrame = None
 
     def __init__(self, from_case, to_case, sub_log, event_log=None):
         self.from_case = from_case
