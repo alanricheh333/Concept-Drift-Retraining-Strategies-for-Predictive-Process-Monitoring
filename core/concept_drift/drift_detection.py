@@ -10,6 +10,7 @@ import os
 from config import root_directory
 import numpy as np
 from . import utils
+import math
 
 
 
@@ -29,10 +30,24 @@ class SampleOption(Enum):
 
 
 def get_sampled_log(event_log: str, window_size: str = "100", all_cases: bool = True, cases_percentage: float = 0.6,
-                    sampling_method: SamplingMethod = SamplingMethod.PRIORITY_LAST, sampling_option: SampleOption = SampleOption.ONLY_FULL_CASES) -> pd.DataFrame:
+                    sampling_method: SamplingMethod = SamplingMethod.ONLY_LAST, sampling_option: SampleOption = SampleOption.ONLY_FULL_CASES) -> pd.DataFrame:
+    """
+    Detect the drifts then construct the sampled log depending on a sampling method for buckets and a sampling option for cases
+    Params - event_log: the name of the training event log
+             window_size: the window size chosen for the drift detection method
+             all_cases: if all cases number should be sampled
+             cases_percentage: if a portion of the number of cases is desired not the whole number
+             sampling_method: the sampling method chosen to sample buckets
+             sampling_option: the sampling option chosen to sample cases from buckets
+
+    Retruns - the sampled log as a dataframe
+    """
     
+    #detect the drift and divide into sublogs
     all_sublogs = detect_drifts(event_log=event_log, window_size=window_size)
 
+    #choose a specific buckets sampling technique
+    #choice between: PRIORITY_LAST, PRIORITY_FIRST, UNIFORM and ONLY_LAST
     if sampling_method == SamplingMethod.PRIORITY_LAST:
         priority_sampling = PrioritySampling()
         sublogs_with_weights = priority_sampling.apply_priority_sampling(all_sublogs, True)
@@ -49,8 +64,22 @@ def get_sampled_log(event_log: str, window_size: str = "100", all_cases: bool = 
         only_last_sampling = OnlyLastSampling()
         sublogs_with_weights = only_last_sampling.apply_only_last_sampling(all_sublogs)
 
+    
+    #get the number of cases in the training log
+    original_log = pd.read_csv(os.path.join(os.getcwd(), "data", "input", "csv", event_log + ".csv"))
+    cases_number = len(original_log["case"].unique())
+    
+    #if consider all cases then the sample number should be the same as the cases number
+    if all_cases:
+        sample_num = cases_number
+    #else the sample number should be a precentage of the cases number
+    else:
+        sample_num = math.ceil(cases_number * cases_percentage)
 
-    sampled_log = sample_data(sublogs_with_weights, cases_percentage, all_cases)
+    #sample buckets then cases from buckets and construct a sampled log
+    sampled_log = sample_data(sublogs_with_weights, sample_num)
+    
+    #export the sampled log
     utils.export_sampled_log(sampled_log)
     
     return sampled_log
@@ -124,17 +153,14 @@ def detect_drifts(event_log: str, window_size: str = "100") -> list[SubLog]:
 
 
 
-def sample_data(sublogs: list[SubLog], case_percent: int, all_cases=False) -> EventLog:
-
-    # get the total number of cases from the case count of the last sublog
-    total_number_of_cases = sum(sublog.to_case for sublog in sublogs)
-
-    # get the total number of cases as sample number
-    if all_cases:
-        all_sample_num = total_number_of_cases
-    # get a percentage of the total number of cases
-    else:
-        all_sample_num = total_number_of_cases * case_percent
+def sample_data(sublogs: list[SubLog], sample_number: int) -> pd.DataFrame:
+    """
+    Samples the buckets depending on the given weight of each bucket then sample the cases depending on the sampling option
+    Params - sublogs: the list of sublogs returned after drift detection
+             sample_number: the number of cases to be sampled from the buckets
+            
+    Returns - the sampled log as a dataframe
+    """
 
     probabilites = []
     # get the probabilities/weights of each sublog
@@ -146,7 +172,7 @@ def sample_data(sublogs: list[SubLog], case_percent: int, all_cases=False) -> Ev
 
     # generate the sampled cases depending on the bucksets probablities
     sampled_cases = sample_bucket_based_on_probability(
-        buckets, probabilites, all_sample_num, sublogs)
+        buckets, probabilites, sample_number, sublogs)
 
     # create an event log and return it
     result_log = EventLog(sampled_cases)

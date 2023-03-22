@@ -19,19 +19,22 @@ class PrioritySampling:
 
         # get a copy of the sublogs and edit that copy
         remain_sublogs = copy.deepcopy(sublogs)
-        # apply the recursive priority weighting function
-        sublogs = self.apply_priority_weighting(sublogs, remain_sublogs, last)
+
+        if last:
+            # apply the recursive priority last weighting function
+            sublogs = self.apply_priority_weighting_last(sublogs, remain_sublogs)
+        else:
+            # apply the recursive priority last weighting function
+            sublogs = self.apply_priority_weighting_first(sublogs, remain_sublogs, 0)
 
         return sublogs
 
 
-
-    def apply_priority_weighting(self, all_sublogs: list = [], remaining_sublogs: list = [], last: bool = True):
+    def apply_priority_weighting_last(self, all_sublogs: list = [], remaining_sublogs: list = []):
         """
-        Apply the recursive priority weighting technique
+        Apply the recursive priority last weighting technique
         Params - all_sublogs: all the sublogs
                  remaining_sublogs: list of the remained unweighted sublogs
-                 last: a boolean indicating if it should be priroty last or priroity first
         """
         # if no remaining sublogs then return the modified all sublogs
         if len(remaining_sublogs) == 0:
@@ -48,14 +51,39 @@ class PrioritySampling:
             sublog.weight = sublog.weight * 0.5
             all_sublogs[i] = sublog
 
-        if last:
-            # delete the last element and then recurse
-            del remaining_sublogs[-1]
-        else:
-            # delete the first element then recurse
-            del remaining_sublogs[0]
         
-        return self.apply_priority_weighting(all_sublogs, remaining_sublogs, last)
+        # delete the last element and then recurse
+        del remaining_sublogs[-1]
+        
+        return self.apply_priority_weighting_last(all_sublogs, remaining_sublogs)
+    
+
+    def apply_priority_weighting_first(self, all_sublogs: list = [], remaining_sublogs: list = [], index: int = 0):
+        """
+        Apply the recursive priority first weighting technique
+        Params - all_sublogs: all the sublogs
+                 remaining_sublogs: list of the remained unweighted sublogs
+                 index: to keep track of the sublog in all_sublogs not in remaining_sublog
+        """
+        # if no remaining sublogs then return the modified all sublogs
+        if len(remaining_sublogs) == 0:
+            return all_sublogs
+
+        # iterate over sublogs and assign half the current weight
+        for i, sublog in enumerate(remaining_sublogs):
+            # check if last item then apply same as preceding item weight so it sums up to 1
+            if len(remaining_sublogs) == 1:
+                sublog.weight = all_sublogs[index - 1].weight
+                all_sublogs[index + i] = sublog
+                continue
+
+            sublog.weight = sublog.weight * 0.5
+            all_sublogs[i + index] = sublog
+
+        # delete the first element then recurse
+        del remaining_sublogs[0]
+        
+        return self.apply_priority_weighting_first(all_sublogs, remaining_sublogs, index+1)
     
 
 

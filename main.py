@@ -333,7 +333,11 @@ def detect(customized_sampling: bool = False):
 
 
 def apr():
-    drift_detection.get_sampled_log("sww_90")
+    import os
+    log = pd.read_csv(os.path.join(os.getcwd(), "data", "input", "csv", "sww_90.csv"))
+    rr = len(log["case"].unique())
+
+    drift_detection.get_sampled_log("sww_90", "100", True, 0.6)
 
 if __name__ == '__main__':
     apr()
