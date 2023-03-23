@@ -1,5 +1,6 @@
 from enum import Enum
 from numpy import NaN
+from core.constants import SampleOption, SamplingMethod
 import data
 import core.prediction_methods.config.settings as pred
 import core.prediction_methods.config.metrics as met
@@ -319,28 +320,27 @@ def predict():
     print("accuracy: ", accuracy)
 
 
-def detect(customized_sampling: bool = False):
-    if customized_sampling:
-        #apply drift detection
-        all_sublogs = concept_drift.apply_drift_detection(log_name="sww_90", delta=0.002)
-        #apply general sampling
-        result_log = concept_drift.general_sampling(all_sublogs, probabilites=[1, 0, 0, 0], case_percent=0.6, all_cases=False)
-        # export result log
-        concept_drift.export_sampled_log(result_log)
-    else:
-        concept_drift.detect_drifts(use_saved_sublogs=False, sampling_method=concept_drift.SamplingMethod.UNIFORM, log_name="sww_90", over_sampling=True, all_cases=False)
+# def detect(customized_sampling: bool = False):
+#     if customized_sampling:
+#         #apply drift detection
+#         all_sublogs = concept_drift.apply_drift_detection(log_name="sww_90", delta=0.002)
+#         #apply general sampling
+#         result_log = concept_drift.general_sampling(all_sublogs, probabilites=[1, 0, 0, 0], case_percent=0.6, all_cases=False)
+#         # export result log
+#         concept_drift.export_sampled_log(result_log)
+#     else:
+#         concept_drift.detect_drifts(use_saved_sublogs=False, sampling_method=concept_drift.SamplingMethod.UNIFORM, log_name="sww_90", over_sampling=True, all_cases=False)
 
 
 
-def apr():
-    import os
-    log = pd.read_csv(os.path.join(os.getcwd(), "data", "input", "csv", "sww_90.csv"))
-    rr = len(log["case"].unique())
-
-    drift_detection.get_sampled_log("sww_90", "100", True, 0.6)
+def detect_drift_generate_sample_log():
+    """
+    Detects the drifts in a log then generate a sample log depending on a sample method and a sample option
+    """
+    drift_detection.get_sampled_log("sww_90", "100", True, 0.6, SamplingMethod.PRIORITY_LAST, SampleOption.CASES_FROM_COUNT_EVENTS)
 
 if __name__ == '__main__':
-    apr()
+    detect_drift_generate_sample_log()
     #predict()
     #detect()
     #predict_after_detection(method= TrainMethod.SDL)
