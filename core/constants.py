@@ -30,3 +30,9 @@ class SampleOption(Enum):
     CASES_FROM_COUNT_EVENTS = "Cases depending on the count of events"
     INCOMPLETE_CASES = "Cases even if incomplete"
     ONLY_EVENTS = "Not Cases just Events"
+
+
+class PredictionMethod(Enum):
+    LIN = "LIN"
+    SDL = "SDL"
+    PASQUADIBISCEGLIE = "PASQUADIBISCEGLIE"

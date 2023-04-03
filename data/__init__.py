@@ -35,24 +35,15 @@ all_data = {"Helpdesk": BASE_FOLDER + "/data/input/csv/Helpdesk.csv",
             "BPIC15_1_test": BASE_FOLDER + "/data/input/csv/BPIC15_1_sorted_new_10.csv"}
 
 
-def get_data(data_name, sep=",", time="completeTime", case="case", activity="event", resource="role", special=False):
-    if data_name in all_data:
+def get_data(data_name: str, file_path:str, sep=",", time="completeTime", case="case", activity="event", resource="role", special=False):
+    if os.path.exists(file_path):
         
-        d = Data(data_name, LogFile(all_data[data_name], sep, 0, None, time, case, activity_attr=activity, convert=False, role_type=True))
+        d = Data(data_name, LogFile(file_path, sep, 0, None, time, case, activity_attr=activity, convert=False, role_type=True))
         if resource:
             d.logfile.keep_attributes([activity, resource, time])
         else:
             d.logfile.keep_attributes([activity, time])
         return d
     print("ERROR: Datafile not found")
-    print("ERROR: Possibilities:", ",".join(all_data.keys()))
     raise NotImplementedError
-
-
-def get_all_data():
-    datasets = []
-    for d in all_data:
-        if d != "BPIC18":
-            datasets.append(get_data(d))
-    return datasets
 
