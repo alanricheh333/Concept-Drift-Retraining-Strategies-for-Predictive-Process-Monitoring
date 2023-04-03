@@ -73,14 +73,13 @@ def import_csv_eventlog(full_file_path: str, file_name: str, split_percent: int,
 
     
 
-
 def split_data(log: pd.DataFrame, columns_names: dict[str, str], naive:bool =True, split_percent = 90) -> Tuple[pd.DataFrame, pd.DataFrame, EventLog, EventLog]:
     """
     split data in csv log with moving events in same case to train in case they are in test data
     Params - log: the event log as dataframe
              columns_names: a dict of the original columns names (control flow)
              naive: if the split should be naivly or not
-             split_percet: the percentage of the split
+             split_percent: the percentage of the split
 
     Returns - the splitted data (train, test) in both format csv and xes
     """
@@ -140,3 +139,41 @@ def split_data(log: pd.DataFrame, columns_names: dict[str, str], naive:bool =Tru
     test_xes = pm4py.convert_to_event_log(test_temp)
 
     return train, test, train_xes, test_xes
+
+
+
+def split_sampled_log(log: pd.DataFrame, naive:bool = True, split_percent = 90) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Splits the sampled event log into train and test logs
+    Params - log: the event log as dataframe
+             naive: if the split should be naivly or not
+             split_percent: the percentage of the split
+
+    Returns - the splitted data (train, test) in both format csv and xes
+    """
+    #split data into train and test
+    train = log.head(int(len(log)*(split_percent/100)))
+
+    #get the test data
+    last_index = train.index[-1]
+    test = log.loc[last_index:]
+    test = test.iloc[1: , :]
+
+    print("train: "+ str(len(train)))
+    print("test: " + str(len(test)))   
+
+    #if naive is false then split data with moving events belonging to cases in train set
+    if naive is False:
+        #get unique cases in train set
+        train_cases_ids = train[CASE_IDENTIFIER_CSV].unique()
+
+        #iterate over data and see if events from test data belong to cases in train data then move them
+        for index, row in test.iterrows():
+            if row[CASE_IDENTIFIER_CSV] in train_cases_ids:
+                train = train.append(row)
+                test = test.drop(index)
+            
+        print("train: "+ str(len(train)))
+        print("test: " + str(len(test)))
+
+    return train, test
