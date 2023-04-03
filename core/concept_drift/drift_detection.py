@@ -1,8 +1,9 @@
-from enum import Enum
 from subprocess import PIPE, Popen
 import pandas as pd
 
 from core.concept_drift.classes.sampling_methods import OnlyLastSampling, PrioritySampling, UniformSampling
+from core.concept_drift.classes.sampling_options import CasesBasedEventsCountSamples, CasesFromEventsSamples, EventsSamples, IncompleteCasesSamples, OnlyFullCasesSamples
+from core.constants import TIMESTAMP_IDENTIRIFIER_CSV, SampleOption, SamplingMethod
 from .classes.sublog import SubLog
 from pm4py.objects.log.obj import EventLog
 import pm4py
@@ -11,22 +12,6 @@ from config import root_directory
 import numpy as np
 from . import utils
 import math
-
-
-
-class SamplingMethod(Enum):
-    UNIFORM = "Unifrom"
-    PRIORITY_LAST = "Priority Last"
-    PRIORITY_FIRST = "Priority First"
-    ONLY_LAST = "Only Last"
-
-
-class SampleOption(Enum):
-    CASES_FROM_EVENTS = "Cases depending on events"
-    ONLY_FULL_CASES = "Only full cases"
-    CASES_FROM_COUNT_EVENTS = "Cases depending on the count of events"
-    INCOMPLETE_CASES = "Cases even if incomplete"
-    ONLY_EVENTS = "Not Cases just Events"
 
 
 def get_sampled_log(event_log: str, window_size: str = "100", all_cases: bool = True, cases_percentage: float = 0.6,
@@ -66,18 +51,18 @@ def get_sampled_log(event_log: str, window_size: str = "100", all_cases: bool = 
 
     
     #get the number of cases in the training log
-    original_log = pd.read_csv(os.path.join(os.getcwd(), "data", "input", "csv", event_log + ".csv"))
+    original_log = pd.read_csv(os.path.join(root_directory, "data", "input", "csv", event_log + ".csv"))
     cases_number = len(original_log["case"].unique())
     
-    #if consider all cases then the sample number should be the same as the cases number
+    #if consider all cases then the sample size should be the same as the whole cases size
     if all_cases:
-        sample_num = cases_number
-    #else the sample number should be a precentage of the cases number
+        sample_size = cases_number
+    #else the sample size should be a precentage of the cases size
     else:
-        sample_num = math.ceil(cases_number * cases_percentage)
+        sample_size = math.ceil(cases_number * cases_percentage)
 
     #sample buckets then cases from buckets and construct a sampled log
-    sampled_log = sample_data(sublogs_with_weights, sample_num)
+    sampled_log = construct_sample_log(sublogs_with_weights, sample_size, sampling_option)
     
     #export the sampled log
     utils.export_sampled_log(sampled_log)
@@ -142,10 +127,11 @@ def detect_drifts(event_log: str, window_size: str = "100") -> list[SubLog]:
     #create a Sublog object for each sublog created
     all_sublogs:list[SubLog] = []
     for sublog in sublogs:
-        sublog = sublog.rename(columns={'case':'case:concept:name', 'role':'org:resource', 'event':'concept:name', 'completeTime':'time:timestamp'})
-        xes_log = pm4py.convert_to_event_log(sublog)
-        log = EventLog(xes_log)
-        result_sublog = SubLog(from_case=0, to_case=len(log._list), sub_log=log, event_log=sublog)
+        #TODO: add if needed to add the xes sublog
+        # sublog = sublog.rename(columns={'case':'case:concept:name', 'role':'org:resource', 'event':'concept:name', 'completeTime':'time:timestamp'})
+        # xes_log = pm4py.convert_to_event_log(sublog)
+        # log = EventLog(xes_log)
+        result_sublog = SubLog(from_case=0, to_case=len(sublog), sub_log=None, event_log=sublog)
         all_sublogs.append(result_sublog)
 
     print(len(all_sublogs))
@@ -153,11 +139,13 @@ def detect_drifts(event_log: str, window_size: str = "100") -> list[SubLog]:
 
 
 
-def sample_data(sublogs: list[SubLog], sample_number: int) -> pd.DataFrame:
+def construct_sample_log(sublogs: list[SubLog], sample_size: int, sampling_option: SampleOption = SampleOption.ONLY_FULL_CASES) -> pd.DataFrame:
     """
     Samples the buckets depending on the given weight of each bucket then sample the cases depending on the sampling option
     Params - sublogs: the list of sublogs returned after drift detection
-             sample_number: the number of cases to be sampled from the buckets
+             sample_number: the size of sample i.e. the number of cases to be sampled from the buckets
+             sampling_option: the sampling option chosen to sample cases from buckets
+
             
     Returns - the sampled log as a dataframe
     """
@@ -170,68 +158,57 @@ def sample_data(sublogs: list[SubLog], sample_number: int) -> pd.DataFrame:
     # get the number of buckets(sublogs)
     buckets = np.arange(len(sublogs))
 
-    # generate the sampled cases depending on the bucksets probablities
-    sampled_cases = sample_bucket_based_on_probability(
-        buckets, probabilites, sample_number, sublogs)
+    # sample the buckets depending on their probabilities and the number of samples needed
+    sampled_buckets = np.random.choice(
+        buckets, p=probabilites, size=int(sample_size))
 
-    # create an event log and return it
-    result_log = EventLog(sampled_cases)
+    # generate the sampled cases depending on the buckets probablities
+    sampled_cases = sample_cases_from_buckets(sampled_buckets, sublogs, sampling_option)
 
-    # turn to dataframe so it can be sorted by time
-    dataframe = pm4py.convert_to_dataframe(result_log)
-    dataframe = dataframe.sort_values("time:timestamp")
-    result_log = pm4py.convert_to_event_log(dataframe)
+    # combine the list of dataframes(sampled cases) in one dataframe
+    event_log: pd.DataFrame = pd.concat(sampled_cases)
+    # sort by time
+    event_log = event_log.sort_values(TIMESTAMP_IDENTIRIFIER_CSV)
 
-    return result_log
+    return event_log
 
 
-def sample_bucket_based_on_probability(buckets: list[int], probabilites: list[int], all_sample_num: int, sublogs: list[SubLog],
-                                        sampling_option: SampleOption = SampleOption.ONLY_FULL_CASES) -> list[SubLog]:
+
+def sample_cases_from_buckets(sampled_buckets: list[int], sublogs: list[SubLog], sampling_option: SampleOption = SampleOption.ONLY_FULL_CASES) -> list[SubLog]:
     """
     Sample list of buckets depending on buckets probabilites and sample number
-    Params - buckets: list of buckets numbers
-             probabilites: list of buckets probabilites
-             all_sample_num: number of the samples
+    Params - sampled_buckets: list of int representing the indecies of sampled buckets
              sublogs: list of sublogs constructed by concept drift detection method
+             sampling_option: the sampling option chosen to sample cases from buckets
+
     Returns - list of sampled cases
     """
 
-    # sample the buckets depending on their probabilities and the number of samples needed
-    sampled_buckets = np.random.choice(
-        buckets, p=probabilites, size=int(all_sample_num))
-
     list_of_sampled_cases = []
     
-    #get unique cases for each bucket
-    bucket_cases = {}
-    for idx, sublog in enumerate(sublogs):
-        bucket_cases[idx] = sublog.event_log["case:concept:name"].unique()
+    #choose the sampling option and sample cases depending on the sampling option
+    #choice between: ONLY_FULL_CASES, CASES_FROM_EVENTS, CASES_FROM_COUNT_EVENTS, INCOMPLETE_CASES, ONLY_EVENTS
+    if sampling_option == SampleOption.ONLY_FULL_CASES:
+        technique = OnlyFullCasesSamples()
+        list_of_sampled_cases = technique.sample_only_full_cases_from_buckets(sublogs, sampled_buckets)
 
-    # sample a case from each time a certain bucket accure
-    for bucket in sampled_buckets:
-        sublog: SubLog = sublogs.__getitem__(bucket)
+    if sampling_option == SampleOption.CASES_FROM_EVENTS:
+        technique = CasesFromEventsSamples()
+        list_of_sampled_cases = technique.sample_cases_based_on_sampling_events(sublogs, sampled_buckets)
 
-        if sampling_option == SampleOption.ONLY_FULL_CASES:
-            
-            #sample a case id from the dedicated bucket
-            sampled_case_id = np.random.choice(bucket_cases[bucket])
-            is_in_another_bucket = False
-            
-            for key, value in bucket_cases.items():
-               #check if the case is in other buckets
-               if sampled_case_id in value and key != bucket:
-                   is_in_another_bucket = True
-                   break
-            
-            #if the case is in other buckets then continue and don't take the case
-            if is_in_another_bucket:
-                continue
+    if sampling_option == SampleOption.CASES_FROM_COUNT_EVENTS:
+        technique = CasesBasedEventsCountSamples()
+        list_of_sampled_cases = technique.sample_cases_based_on_events_count(sublogs, sampled_buckets)
 
-        #sample the case from the sublog
-        sampled_case = sublog.event_log.loc[sublog.event_log["case:concept:name"] == sampled_case_id]
-        
-        list_of_sampled_cases.append(sampled_case)
+    if sampling_option == SampleOption.INCOMPLETE_CASES:
+        technique = IncompleteCasesSamples()
+        list_of_sampled_cases = technique.sample_incomplete_cases(sublogs, sampled_buckets)
 
+    if sampling_option == SampleOption.ONLY_EVENTS:
+        technique = EventsSamples()
+        list_of_sampled_cases = technique.sample_only_events(sublogs, sampled_buckets)
+
+    
     return list_of_sampled_cases
 
 

@@ -1,5 +1,6 @@
 from enum import Enum
 from numpy import NaN
+from core.constants import SampleOption, SamplingMethod
 import data
 import core.prediction_methods.config.settings as pred
 import core.prediction_methods.config.metrics as met
@@ -12,133 +13,8 @@ import pandas as pd
 import numpy as np
 from subprocess import PIPE, Popen
 
+from utils import import_csv_eventlog, import_xes_eventlog
 
-
-def export_xes_to_csv(file_name):
-    log = pm4py.read_xes(root_directory + "CP/data/input/script/" + file_name)
-    ss = pm4py.convert_to_dataframe(log)
-    ss.to_csv(root_directory + "Data/" + file_name)
-
-
-def export_xes(new_name, old_name = None, data_frame = None, add_resource = False):
-
-    df = data_frame
-    #check if we need to get the name from the input folder
-    if old_name:
-        log = pm4py.read_xes(root_directory + "CP/data/input/script/"+ old_name + ".xes")
-        #convert to dataframe
-        df = pm4py.convert_to_dataframe(log)
-    
-    #add resource column with empty values
-    if add_resource:
-        for index, row in df.iterrows():
-            temp = row["org:resource"]
-            if row['org:resource'] is NaN:
-                row["org:resource"] = ""
-    
-    #export to xes
-    exported_log = pm4py.convert_to_event_log(df)
-    pm4py.write_xes(exported_log, root_directory + "CP/data/input/script/" + new_name + ".xes")
-
-
-def analyze():
-    #train = LogFile(root_directory + "Data/BPIC18.csv", ",", 0, None, "startTime", "case", activity_attr=None, integer_input=False, convert=False)
-    train = LogFile(root_directory + "Data/Helpdesk.csv", ",", 0, None, "completeTime", "case", "event", integer_input=False, convert=False)
-    print("Columns: ", train.data.columns)
-    print("Num of attributes:", len(train.data.columns))
-    train.remove_attributes(["eventid", "identity_id", "event_identity_id", "year", "penalty_", "amount_applied", "payment_actual", "penalty_amount", "risk_factor", "cross_compliance", "selected_random", "selected_risk", "selected_manually", "rejected"])
-    print("Num of attributes:", len(train.data.columns))
-    print(train.data.columns)
-
-    for attr in train.data.columns:
-        print(attr, len(train.data[attr].value_counts()))
-
-
-def split_data(file_name, split_percent = 90, case_column = "case:concept:name", role_column = "org:resource", event_column="concept:name", time_column = "time:timestamp"):
-    """
-    split data in csv log with moving events in same case to train in case they are in test data
-    """
-    #import log
-    log = pd.read_csv(root_directory + "Data/" + file_name + ".csv", header=0, nrows=None, delimiter=",", encoding='latin-1')
-    
-    #sort values by time
-    #log = log.sort_values("completeTime")
-    
-    #split data into train and test
-    train = log.head(int(len(log)*(split_percent/100)))
-
-    #get unique cases in train set
-    train_cases_ids = train[case_column].unique()
-
-    #get the test data
-    last_index = train.index[-1]
-    test = log.loc[last_index:]
-    test = test.iloc[1: , :]
-
-    print("train: "+ str(len(train)))
-    print("test: " + str(len(test)))
-
-    #iterate over data and see if events from test data belong to cases in train data then move them
-    for index, row in test.iterrows():
-        if row[case_column] in train_cases_ids:
-            train = train.append(row)
-            test = test.drop(index)
-            print("train: "+ str(len(train)))
-            print("test: " + str(len(test)))
-
-    #export train and test data to csv
-    train.to_csv(root_directory + "Data/" + file_name + "_" + str(split_percent) + ".csv")
-    test.to_csv(root_directory + "Data/" + file_name + "_"+ str(100-split_percent) +".csv")
-
-    #export train data to xes
-    train.rename(columns={'role': role_column, 'event':event_column, 'completeTime': time_column, 'case': case_column}, inplace=True)
-    print(train.columns)
-    del train["Unnamed: 0"]
-    train["time:timestamp"] = pd.to_datetime(train["time:timestamp"])
-    exported_train = pm4py.convert_to_event_log(train)
-    pm4py.write_xes(exported_train, root_directory + "CP/data/input/script/"+ file_name + "_" + str(split_percent) + ".xes")
-
-
-def naive_split_data(file_name, split_percent = 90, case_column = "case:concept:name", role_column = "org:resource", event_column="concept:name", time_column = "time:timestamp"):
-    """
-    split data naivly without moving events in same case in train and test
-    """
-    #import log
-    log = pd.read_csv(root_directory + "Data/" + file_name + ".csv", header=0, nrows=None, delimiter=",", encoding='latin-1')
-    
-    #sort values by time
-    #log = log.sort_values("completeTime")
-
-    #rename columns for csv
-    log.rename(columns={role_column: 'role', event_column: 'event', time_column: 'completeTime', case_column: 'case'}, inplace=True)
-
-    if 'role' not in log.columns:
-        log["role"] = ""
-    
-    #split data into train and test
-    train = log.head(int(len(log)*(split_percent/100)))
-
-    #get the test data
-    last_index = train.index[-1]
-    test = log.loc[last_index:]
-    test = test.iloc[1: , :]
-
-    #export train and test data to csv
-    train.to_csv(root_directory + "Data/" + file_name + "_" + str(split_percent) + ".csv")
-    test.to_csv(root_directory + "Data/" + file_name + "_"+ str(100-split_percent) +".csv")
-
-    #export train data to xes
-    train.rename(columns={'role': role_column, 'event':event_column, 'completeTime': time_column, 'case': case_column}, inplace=True)
-    print(train.columns)
-    
-    if 'Unnamed: 0' in train.columns:
-        del train["Unnamed: 0"]
-    
-    train["time:timestamp"] = pd.to_datetime(train["time:timestamp"])
-    exported_train = pm4py.convert_to_event_log(train)
-    pm4py.write_xes(exported_train, root_directory + "CP/data/input/script/"+ file_name + "_" + str(split_percent) + ".xes")
-
-    
 
 class TrainMethod(Enum):
     SDL = "sdl"
@@ -319,29 +195,52 @@ def predict():
     print("accuracy: ", accuracy)
 
 
-def detect(customized_sampling: bool = False):
-    if customized_sampling:
-        #apply drift detection
-        all_sublogs = concept_drift.apply_drift_detection(log_name="sww_90", delta=0.002)
-        #apply general sampling
-        result_log = concept_drift.general_sampling(all_sublogs, probabilites=[1, 0, 0, 0], case_percent=0.6, all_cases=False)
-        # export result log
-        concept_drift.export_sampled_log(result_log)
-    else:
-        concept_drift.detect_drifts(use_saved_sublogs=False, sampling_method=concept_drift.SamplingMethod.UNIFORM, log_name="sww_90", over_sampling=True, all_cases=False)
+# def detect(customized_sampling: bool = False):
+#     if customized_sampling:
+#         #apply drift detection
+#         all_sublogs = concept_drift.apply_drift_detection(log_name="sww_90", delta=0.002)
+#         #apply general sampling
+#         result_log = concept_drift.general_sampling(all_sublogs, probabilites=[1, 0, 0, 0], case_percent=0.6, all_cases=False)
+#         # export result log
+#         concept_drift.export_sampled_log(result_log)
+#     else:
+#         concept_drift.detect_drifts(use_saved_sublogs=False, sampling_method=concept_drift.SamplingMethod.UNIFORM, log_name="sww_90", over_sampling=True, all_cases=False)
+
+
+def import_event_log():
+    """
+    Imports an event log then split it to train and test then export in csv and xes
+    """
+    #importing file settings
+    file_path = "path_to_file"
+    file_name = "some_name"
+    split_percent = 90
+    columns_names = {
+        "case": "case",
+        "activity": "activity",
+        "timestamp": "timestamp",
+        "resource": "resource"
+    }
+    naive = True
+    xes = True
+
+    if xes:
+        result = import_xes_eventlog(file_path, file_name, split_percent, columns_names, naive)
+    else: 
+        result = import_csv_eventlog(file_path, file_name, split_percent, columns_names, naive)
+
+    print(result)
 
 
 
-def apr():
-    import os
-    log = pd.read_csv(os.path.join(os.getcwd(), "data", "input", "csv", "sww_90.csv"))
-    rr = len(log["case"].unique())
-
-    drift_detection.get_sampled_log("sww_90", "100", True, 0.6)
+def detect_drift_generate_sample_log():
+    """
+    Detects the drifts in a log then generate a sample log depending on a sample method and a sample option
+    """
+    drift_detection.get_sampled_log("sww_90", "100", True, 0.6, SamplingMethod.PRIORITY_LAST, SampleOption.CASES_FROM_COUNT_EVENTS)
 
 if __name__ == '__main__':
-    apr()
+    detect_drift_generate_sample_log()
     #predict()
     #detect()
     #predict_after_detection(method= TrainMethod.SDL)
-    #naive_split_data(file_name="BPIC15_1_sorted_new")
