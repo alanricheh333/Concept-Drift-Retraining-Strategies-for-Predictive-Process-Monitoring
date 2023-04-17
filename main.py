@@ -1,9 +1,11 @@
 import os
-from core.constants import SampleOption, SamplingMethod
+from core.constants import PredictionMethod, SampleOption, SamplingMethod
+import core.prediction_methods.config.metrics as metric
 from core.prediction_methods.predict import train_and_predict
 from core.concept_drift import drift_detection
 from config import root_directory
-from utils import import_csv_eventlog, import_xes_eventlog
+from data.utils import import_csv_eventlog, import_xes_eventlog
+import click
 
 
 def predict_original():
@@ -15,7 +17,7 @@ def predict_original():
     train_file_path = os.path.join(root_directory, "data", "input", "csv", log_train + ".csv")
     test_file_path = os.path.join(root_directory, "data", "input", "csv", log_test + ".csv")
     
-    accuracy, f1_score = train_and_predict(log_train, train_file_path, log_test, test_file_path)
+    accuracy, f1_score = train_and_predict(log_train, train_file_path, log_test, test_file_path, PredictionMethod.SDL)
 
     print("Accuracy: ", accuracy)
     print("F1 Score: ", f1_score)
@@ -27,14 +29,14 @@ def predict_sampled():
     """
     original_train_log = "sww_train"
     #detect drifts
-    sampled_log = drift_detection.get_sampled_log(original_train_log, "100", True, 0.6, SamplingMethod.PRIORITY_LAST, SampleOption.CASES_FROM_COUNT_EVENTS)
+    sampled_log = drift_detection.get_sampled_log(original_train_log, "100", True, 0.6, SamplingMethod.UNIFORM, SampleOption.CASES_FROM_COUNT_EVENTS)
     
     log_train = "sampled"
     log_test = "sww_test"
     train_file_path = os.path.join(root_directory, "data", "output", log_train + ".csv")
     test_file_path = os.path.join(root_directory, "data", "input", "csv", log_test + ".csv")
     
-    accuracy, f1_score = train_and_predict(log_train, train_file_path, log_test, test_file_path)
+    accuracy, f1_score = train_and_predict(log_train, train_file_path, log_test, test_file_path, PredictionMethod.LIN)
 
     print("Accuracy: ", accuracy)
     print("F1 Score: ", f1_score)
@@ -76,5 +78,5 @@ def detect_drift_generate_sample_log():
 if __name__ == '__main__':
     #detect_drift_generate_sample_log()
     #import_event_log()
-    #predict_sampled()
-    predict_original()
+    predict_sampled()
+    # predict_original()

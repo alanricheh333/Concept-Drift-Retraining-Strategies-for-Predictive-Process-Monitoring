@@ -9,10 +9,12 @@ class Precision:
         correct_predicted = {}
         total_predicted = {}
         total_value = {}
+        result_len = 0
 
         for r in result:
             expected_val = r[0]
             predicted_val = r[1]
+            result_len += 1
 
             if predicted_val not in total_predicted:
                 total_predicted[predicted_val] = 0
@@ -30,5 +32,6 @@ class Precision:
         sum = 0
         for val in total_predicted.keys():
             sum += total_value.get(val, 0) * (correct_predicted.get(val, 0) / total_predicted[val])
-        return sum / len(result)
+        
+        return sum / result_len
 

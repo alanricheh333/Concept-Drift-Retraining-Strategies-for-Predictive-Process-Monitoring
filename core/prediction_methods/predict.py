@@ -31,7 +31,7 @@ def train_and_predict(train_log_name: str, train_log_path: str, test_log_name: s
     test_data = data.get_data(test_log_name, test_log_path)
 
     # change the timestamp format for this type of prediction
-    if prediction_method in PredictionMethod.PASQUADIBISCEGLIE:
+    if prediction_method.value in PredictionMethod.PASQUADIBISCEGLIE.value:
 
         train_data.logfile.data[TIMESTAMP_IDENTIRIFIER_CSV] = pd.to_datetime(
             train_data.logfile.data[TIMESTAMP_IDENTIRIFIER_CSV]).strftime('%Y/%m/%d %H:%M:%S.%f')
@@ -58,11 +58,13 @@ def train_and_predict(train_log_name: str, train_log_path: str, test_log_name: s
     # test model with the testing data
     results = method.test(model, test_data.test_orig)
 
+    results_list = list(results)
+
     # calculate accuracy
-    accuracy = metric.ACCURACY.calculate(results)
+    accuracy = metric.ACCURACY.calculate(results_list)
 
     # calculate f1-score
-    f1_score = metric.F1SCORE.calculate(results)
+    f1_score = metric.F1SCORE.calculate(results_list)
 
     return accuracy, f1_score
 
@@ -74,21 +76,21 @@ def get_model_settings(prediction_method: PredictionMethod) -> Tuple[Setting, Se
 
     Returns - the settings for the train and test settings
     """
-    if prediction_method is PredictionMethod.LIN:
+    if prediction_method.value is PredictionMethod.LIN.value:
         # select predection method
         settings = predictor.LIN
 
         # select predection method for testing
         test_settings = predictor.LIN
 
-    elif prediction_method in PredictionMethod.SDL:
+    elif prediction_method.value in PredictionMethod.SDL.value:
         # select predection method
         settings = predictor.SDL
 
         # select predection method for testing
         test_settings = predictor.SDL
 
-    elif prediction_method in PredictionMethod.PASQUADIBISCEGLIE:
+    elif prediction_method.value in PredictionMethod.PASQUADIBISCEGLIE.value:
         # select predection method
         settings = predictor.PASQUADIBISCEGLIE
 

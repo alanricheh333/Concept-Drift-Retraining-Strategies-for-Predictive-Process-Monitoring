@@ -1,4 +1,5 @@
 
+import core.prediction_methods.config.metrics as metric
 from core.prediction_methods.config.metrics.precision import Precision
 from core.prediction_methods.config.metrics.recall import Recall
 
@@ -8,9 +9,12 @@ class F1Score:
         pass
 
     def calculate(self, result):
-        recall = Recall().calculate(result)
-        precision = Precision().calculate(result)
+        recall = metric.RECALL.calculate(result)
+        precision = metric.PRECISION.calculate(result)
 
-        score = 2 * ((recall * precision) / (recall + precision))
+        try:
+            score = 2 * ((recall * precision) / (recall + precision))
+        except:
+            score = 0
 
         return score
