@@ -11,8 +11,7 @@ from functools import partial
 import jellyfish as jf
 import numpy as np
 
-
-from Lin.modulator import Modulator
+from core.prediction_methods.methods.Lin.modulator import Modulator
 
 
 def create_model_cudnn(vec, vocab_act_size, vocab_role_size, output_folder):
@@ -189,7 +188,7 @@ def vectorization(log):
     train_cases = log.get_cases()
     part_vect_map = partial(vect_map, prefix_size=log.k)
     with mp.Pool(mp.cpu_count()) as p:
-        result = np.array(p.map(part_vect_map, train_cases))
+        result = np.array(p.map(part_vect_map, train_cases), dtype=object)
 
     vec['prefixes']['x_ac_inp'] = np.concatenate(result[:, 0])
     vec['prefixes']['x_rl_inp'] = np.concatenate(result[:, 1])

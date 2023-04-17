@@ -1,5 +1,5 @@
-from Lin.model import create_model, predict_next, vectorization
-from utils.logfile import LogFile
+from core.prediction_methods.methods.Lin.model import create_model, predict_next, vectorization
+from core.prediction_methods.utils.logfile import LogFile
 
 
 def train(log, epochs=200, early_stop=42):

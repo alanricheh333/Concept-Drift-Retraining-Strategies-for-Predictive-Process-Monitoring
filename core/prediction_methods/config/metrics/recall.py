@@ -8,8 +8,10 @@ class Recall:
 
         correct_predicted = {}
         total_value = {}
+        result_len = 0
 
         for r in result:
+            result_len += 1
             expected_val = r[0]
             predicted_val = r[1]
 
@@ -25,6 +27,7 @@ class Recall:
         sum = 0
         for val in total_value.keys():
             sum += total_value[val] * (correct_predicted.get(val, 0) / total_value[val])
-        return sum / len(result)
+
+        return sum / result_len
 
     
