@@ -79,28 +79,29 @@ def detect_drifts(event_log: str, window_size: str = "100") -> list[SubLog]:
 
     Returns - a list of Sublog object
     """
-    import subprocess
+    from subprocess import run
     # process = subprocess.call(['java', '-jar', os.path.join(root_directory, "core", "concept_drift", "ProDrift2.5.jar"), '-fp', 
     #                  os.path.join(root_directory, "data", "input", "xes", event_log + ".xes"),
     #                  '-ddm','events', '-ws', window_size, '-ddnft', '0.0', '-dds', 'high', '-cm', 'activity', '-dcnft', '0.0'])
     
     #open process to connect with the pro drift jar file
-    process = Popen(['java', '-jar', os.path.join(root_directory, "core", "concept_drift", "ProDrift2.5.jar"), '-fp', 
+    process = run(['java', '-jar', os.path.join(root_directory, "core", "concept_drift", "ProDrift2.5.jar"), '-fp', 
                      os.path.join(root_directory, "data", "input", "xes", event_log + ".xes"),
-                     '-ddm','events', '-ws', window_size, '-ddnft', '0.0', '-dds', 'high', '-cm', 'activity', '-dcnft', '0.0'], stdout=PIPE, stderr=PIPE).wait()
+                     '-ddm','events', '-ws', window_size, '-ddnft', '0.0', '-dds', 'high', '-cm', 'activity', '-dcnft', '0.0'], stdout=PIPE, stderr=PIPE)
     
-    if process.poll() is None or process.poll() == 1:
-        stat = process.wait()
-        print("waiting...")
+    result = process.stdout
+    # if process.poll() is None or process.poll() == 1:
+    #     stat = process.wait()
+    #     print("waiting...")
     
-    #excute the process
-    result = process.communicate()
+    # #excute the process
+    # result = process.communicate()
 
     # stat = process.wait()
-    print("Status: ", stat)
+    # print("Status: ", stat)
     
     #get the result as text
-    result_text:str = result[0].decode('utf-8')
+    result_text:str = result.decode('utf-8')
     print(result_text)
     #retrieve the useful information from the resulting text
     first_split:list = result_text.split('\n\n\n')
