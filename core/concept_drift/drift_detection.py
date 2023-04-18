@@ -87,7 +87,7 @@ def detect_drifts(event_log: str, window_size: str = "100") -> list[SubLog]:
     #open process to connect with the pro drift jar file
     process = Popen(['java', '-jar', os.path.join(root_directory, "core", "concept_drift", "ProDrift2.5.jar"), '-fp', 
                      os.path.join(root_directory, "data", "input", "xes", event_log + ".xes"),
-                     '-ddm','events', '-ws', window_size, '-ddnft', '0.0', '-dds', 'high', '-cm', 'activity', '-dcnft', '0.0'], stdout=PIPE, stderr=PIPE)
+                     '-ddm','events', '-ws', window_size, '-ddnft', '0.0', '-dds', 'high', '-cm', 'activity', '-dcnft', '0.0'], stdout=PIPE, stderr=PIPE).wait()
     
     if process.poll() is None or process.poll() == 1:
         stat = process.wait()
