@@ -87,6 +87,9 @@ def detect_drifts(event_log: str, window_size: str = "100") -> list[SubLog]:
     
     #excute the process
     result = process.communicate()
+
+    stat = process.wait()
+    print("Status: ", stat)
     
     #get the result as text
     result_text:str = result[0].decode('utf-8')
