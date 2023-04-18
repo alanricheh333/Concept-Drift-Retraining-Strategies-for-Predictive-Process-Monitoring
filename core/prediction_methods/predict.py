@@ -32,12 +32,15 @@ def train_and_predict(train_log_name: str, train_log_path: str, test_log_name: s
 
     # change the timestamp format for this type of prediction
     if prediction_method.value in PredictionMethod.PASQUADIBISCEGLIE.value:
+        
+        for idx, row in train_data.logfile.data.iterrows():
+            time = pd.to_datetime(row[TIMESTAMP_IDENTIRIFIER_CSV])
+            train_data.logfile.data.at[idx, TIMESTAMP_IDENTIRIFIER_CSV] = time.strftime('%Y/%m/%d %H:%M:%S.%f')
 
-        train_data.logfile.data[TIMESTAMP_IDENTIRIFIER_CSV] = pd.to_datetime(
-            train_data.logfile.data[TIMESTAMP_IDENTIRIFIER_CSV]).strftime('%Y/%m/%d %H:%M:%S.%f')
+        for idx, row in test_data.logfile.data.iterrows():
+            time = pd.to_datetime(row[TIMESTAMP_IDENTIRIFIER_CSV])
+            test_data.logfile.data.at[idx, TIMESTAMP_IDENTIRIFIER_CSV] = time.strftime('%Y/%m/%d %H:%M:%S.%f')
 
-        test_data.logfile.data[TIMESTAMP_IDENTIRIFIER_CSV] = pd.to_datetime(
-            test_data.logfile.data[TIMESTAMP_IDENTIRIFIER_CSV]).strftime('%Y/%m/%d %H:%M:%S.%f')
 
     # select the percentage of training which is always 100%
     settings.train_percentage = 100
