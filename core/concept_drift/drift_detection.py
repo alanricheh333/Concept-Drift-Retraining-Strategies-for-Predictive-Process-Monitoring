@@ -91,6 +91,7 @@ def detect_drifts(event_log: str, window_size: str = "100") -> list[SubLog]:
     
     if process.poll() is None or process.poll() == 1:
         stat = process.wait()
+        print("waiting...")
     
     #excute the process
     result = process.communicate()
