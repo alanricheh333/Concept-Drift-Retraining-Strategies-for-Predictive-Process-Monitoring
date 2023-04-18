@@ -79,16 +79,23 @@ def detect_drifts(event_log: str, window_size: str = "100") -> list[SubLog]:
 
     Returns - a list of Sublog object
     """
-
+    import subprocess
+    # process = subprocess.call(['java', '-jar', os.path.join(root_directory, "core", "concept_drift", "ProDrift2.5.jar"), '-fp', 
+    #                  os.path.join(root_directory, "data", "input", "xes", event_log + ".xes"),
+    #                  '-ddm','events', '-ws', window_size, '-ddnft', '0.0', '-dds', 'high', '-cm', 'activity', '-dcnft', '0.0'])
+    
     #open process to connect with the pro drift jar file
     process = Popen(['java', '-jar', os.path.join(root_directory, "core", "concept_drift", "ProDrift2.5.jar"), '-fp', 
                      os.path.join(root_directory, "data", "input", "xes", event_log + ".xes"),
                      '-ddm','events', '-ws', window_size, '-ddnft', '0.0', '-dds', 'high', '-cm', 'activity', '-dcnft', '0.0'], stdout=PIPE, stderr=PIPE)
     
+    if process.poll() is None or process.poll() == 1:
+        stat = process.wait()
+    
     #excute the process
     result = process.communicate()
 
-    stat = process.wait()
+    # stat = process.wait()
     print("Status: ", stat)
     
     #get the result as text
