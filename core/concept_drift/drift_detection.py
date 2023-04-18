@@ -90,7 +90,7 @@ def detect_drifts(event_log: str, window_size: str = "100") -> list[SubLog]:
     
     #get the result as text
     result_text:str = result[0].decode('utf-8')
-
+    print(result_text)
     #retrieve the useful information from the resulting text
     first_split:list = result_text.split('\n\n\n')
     second_split:list = first_split[0].split('\n\n')
