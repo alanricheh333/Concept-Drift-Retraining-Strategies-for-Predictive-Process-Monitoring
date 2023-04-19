@@ -20,10 +20,6 @@ def train_and_predict(train_log_name: str, train_log_path: str, test_log_name: s
 
     Returns - the accuracy and f1-score metrics
     """
-    import os
-    if os.path.exists(train_log_path):
-        print("########### EXIST")
-        return
     # get the training data
     train_data = data.get_data(train_log_name, train_log_path)
 
