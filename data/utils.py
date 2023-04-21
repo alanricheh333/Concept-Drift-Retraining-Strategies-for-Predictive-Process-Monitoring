@@ -2,6 +2,7 @@ import os
 from typing import Tuple
 import pm4py
 import pandas as pd
+import numpy as np
 from config import root_directory
 from pm4py.objects.log.obj import EventLog
 from core.constants import ACTIVITY_IDENTIFIER_CSV, ACTIVITY_IDENTIFIER_XES, CASE_IDENTIFIER_CSV, CASE_IDENTIFIER_XES, RESOURCE_IDENTIFIER_CSV, RESOURCE_IDENTIFIER_XES, TIMESTAMP_IDENTIRIFIER_CSV, TIMESTAMP_IDENTIRIFIER_XES
@@ -86,7 +87,10 @@ def split_data(log: pd.DataFrame, columns_names: dict[str, str], naive:bool =Tru
     
     #TODO: remove sort in the future if not needed
     #sort values by time
-    #log = log.sort_values("completeTime")
+    log = log.sort_values(TIMESTAMP_IDENTIRIFIER_XES)
+
+    if log.isnull().values.any():
+        log = log.replace(np.nan, "", regex=True)
 
     #rename the columns
     try:
