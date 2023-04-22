@@ -107,7 +107,7 @@ def predict_block_cli(original_log, test_log, sample_method, prediction_method):
 
     results = {}
     original_train_log = original_log
-    sampling_options = [SampleOption.CASES_FROM_COUNT_EVENTS, SampleOption.CASES_FROM_EVENTS, SampleOption.INCOMPLETE_CASES, SampleOption.ONLY_FULL_CASES, SampleOption.ONLY_EVENTS]
+    sampling_options = [SampleOption.CASES_FROM_COUNT_EVENTS, SampleOption.INCOMPLETE_CASES, SampleOption.CASES_FROM_EVENTS, SampleOption.ONLY_FULL_CASES, SampleOption.ONLY_EVENTS]
     for sam in sampling_options:
     
         try:
@@ -115,6 +115,8 @@ def predict_block_cli(original_log, test_log, sample_method, prediction_method):
 
             #detect drifts
             sampled_log = drift_detection.get_sampled_log(original_train_log, "100", True, 0.6, sam_method, sam_option)
+
+            print("########### SAMPLED LOG SIZE: ", len(sampled_log))
 
             log_train = "sampled"
             log_test = test_log
@@ -127,9 +129,10 @@ def predict_block_cli(original_log, test_log, sample_method, prediction_method):
                 "f1_score": f1_score
             }
             results[sam_option.value] = single_result
-            print(sam_option.value + ": " + single_result)
+            print(sam_option.value, ": ",single_result)
 
-        except:
+        except Exception as error:
+            print("ERROR: ", error)
             accuracy = ""
             f1_score = ""
 
