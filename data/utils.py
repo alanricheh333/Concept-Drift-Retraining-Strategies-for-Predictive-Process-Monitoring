@@ -89,9 +89,6 @@ def split_data(log: pd.DataFrame, columns_names: dict[str, str], naive:bool =Tru
     #sort values by time
     log = log.sort_values(TIMESTAMP_IDENTIRIFIER_XES)
 
-    if log.isnull().values.any():
-        log = log.replace(np.nan, "", regex=True)
-
     #rename the columns
     try:
         log.rename(columns={columns_names['case']: CASE_IDENTIFIER_CSV,
@@ -132,6 +129,9 @@ def split_data(log: pd.DataFrame, columns_names: dict[str, str], naive:bool =Tru
                                 TIMESTAMP_IDENTIRIFIER_CSV: TIMESTAMP_IDENTIRIFIER_XES,
                                 RESOURCE_IDENTIFIER_CSV: RESOURCE_IDENTIFIER_XES})
     
+    if train_temp.isnull().values.any():
+        train_temp = train_temp.replace(np.nan, "", regex=True)
+    
     train_xes = pm4py.convert_to_event_log(train_temp)
 
     #convert test set to xes
@@ -139,6 +139,9 @@ def split_data(log: pd.DataFrame, columns_names: dict[str, str], naive:bool =Tru
                                 ACTIVITY_IDENTIFIER_CSV: ACTIVITY_IDENTIFIER_XES,
                                 TIMESTAMP_IDENTIRIFIER_CSV: TIMESTAMP_IDENTIRIFIER_XES,
                                 RESOURCE_IDENTIFIER_CSV: RESOURCE_IDENTIFIER_XES})
+    
+    if test_temp.isnull().values.any():
+        test_temp = test_temp.replace(np.nan, "", regex=True)
     
     test_xes = pm4py.convert_to_event_log(test_temp)
 
