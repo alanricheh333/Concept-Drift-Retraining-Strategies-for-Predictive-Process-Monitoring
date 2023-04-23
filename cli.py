@@ -139,6 +139,67 @@ def predict_block_cli(original_log, test_log, sample_method, prediction_method):
     print("results: ", results)
 
 
+@click.command()
+@click.option("--original_log", help="Original log name, the train log")
+@click.option("--test_log", help="The test log name")
+@click.option("--prediction_method", help="The prediction method to use, options are: mm-pred, cnn, sdl")
+def predict_larger_block_cli(original_log, test_log, prediction_method):
+    """
+    Train and test the next event prediction on the sampled log after detecting drifts with all design options
+    A Sampling method and a prediction method has to be specified
+    """
+    #check prediction method
+    if prediction_method == "mm-pred":
+        pred_method = PredictionMethod.LIN
+    elif prediction_method == "cnn":
+        pred_method = PredictionMethod.PASQUADIBISCEGLIE
+    elif prediction_method == "sdl":
+        pred_method = PredictionMethod.SDL
+    else:
+        print("please pick a prediction method from the list: mm-pred, cnn, sdl !!")
+        return
+
+
+    results = {}
+    original_train_log = original_log
+    sampling_options = [SampleOption.CASES_FROM_COUNT_EVENTS, SampleOption.INCOMPLETE_CASES, SampleOption.CASES_FROM_EVENTS, SampleOption.ONLY_FULL_CASES, SampleOption.ONLY_EVENTS]
+    sampling_method = [SamplingMethod.UNIFORM, SamplingMethod.PRIORITY_FIRST, SamplingMethod.PRIORITY_LAST, SamplingMethod.ONLY_LAST]
+
+    for meth in sampling_method:
+        method_result = {}
+        
+        for sam in sampling_options:
+        
+            try:
+                sam_option = sam
+
+                #detect drifts
+                sampled_log = drift_detection.get_sampled_log(original_train_log, "100", True, 0.6, meth, sam_option)
+
+                print("########### SAMPLED LOG SIZE: ", len(sampled_log))
+
+                log_train = "sampled"
+                log_test = test_log
+                train_file_path = os.path.join(root_directory, "data", "output", log_train + ".csv")
+                test_file_path = os.path.join(root_directory, "data", "input", "csv", log_test + ".csv")
+
+                accuracy, f1_score = train_and_predict(log_train, train_file_path, log_test, test_file_path, pred_method)
+                single_result = {
+                    "accuracy": accuracy,
+                    "f1_score": f1_score
+                }
+                method_result[sam_option.value] = single_result
+                print(sam_option.value, ": ",single_result)
+
+            except Exception as error:
+                print("ERROR: ", error)
+                accuracy = ""
+                f1_score = ""
+
+        results[meth.value] = method_result
+
+    print("results: ", results)
+
 
 @click.group()
 def cli():
@@ -147,8 +208,8 @@ def cli():
 
 cli.add_command(predict_sampled_cli)
 cli.add_command(predict_block_cli)
+cli.add_command(predict_larger_block_cli)
 
 
 if __name__ == '__main__':
-    
     cli()
