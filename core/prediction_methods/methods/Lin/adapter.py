@@ -3,8 +3,8 @@ from core.prediction_methods.utils.logfile import LogFile
 
 
 def train(log, epochs=200, early_stop=42):
-    epochs = 12
-    early_stop = 5
+    epochs = 60
+    early_stop = 10
     return create_model(log, "tmp", epochs, early_stop)
 
 
