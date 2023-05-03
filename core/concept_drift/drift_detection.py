@@ -1,3 +1,4 @@
+import copy
 from subprocess import PIPE, Popen
 import pandas as pd
 
@@ -63,11 +64,50 @@ def get_sampled_log(event_log: str, window_size: str = "100", all_cases: bool = 
 
     #sample buckets then cases from buckets and construct a sampled log
     sampled_log = construct_sample_log(sublogs_with_weights, sample_size, sampling_option)
+
+    sampled_log = equalize_activities_num(sampled_log, event_log)
     
     #export the sampled log
     utils.export_sampled_log(sampled_log)
     
     return sampled_log
+
+
+def equalize_activities_num(sampled_log:pd.DataFrame, log_name:str):
+
+    test_file_path = os.path.join(root_directory, "data", "input", "csv", log_name.replace("_train", "_test") + ".csv")
+    test = pd.read_csv(test_file_path, index_col=0)
+    train_act = sampled_log["event"].unique()
+    test_act = test["event"].unique()
+
+    print(len(train_act))
+    print(len(test_act))
+    dif = list(set(train_act) - set(test_act))
+    print("DIF: ", dif)
+    #test = test.drop(columns=["Unnamed: 0"])
+    
+    if len(train_act) > len(test_act):
+        for act in dif:
+            last = test.tail(1)
+            new_index = len(test)
+            last["event"] = act
+            new_data = pd.DataFrame(last.values, index=[new_index], columns=test.columns)
+            test = pd.concat([test, new_data])
+
+        print(test.tail(1))
+        test.to_csv(test_file_path)
+   
+    elif len(train_act) < len(test_act):
+        for act in dif:
+            last = sampled_log.tail(1)
+            new_index = len(sampled_log)
+            last["event"] = act
+            new_data = pd.DataFrame(last.values, index=[new_index], columns=test.columns)
+            sampled_log = pd.concat([sampled_log, new_data])
+        
+    
+    return sampled_log
+
 
 
 def detect_drifts(event_log: str, window_size: str = "100") -> list[SubLog]:
