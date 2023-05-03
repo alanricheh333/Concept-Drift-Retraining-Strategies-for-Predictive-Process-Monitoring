@@ -82,7 +82,7 @@ def equalize_activities_num(sampled_log:pd.DataFrame, log_name:str):
 
     print(len(train_act))
     print(len(test_act))
-    dif = list(set(train_act) - set(test_act))
+    dif = list(set(train_act) - set(test_act)) + list(set(test_act) - set(train_act))
     print("DIF: ", dif)
     #test = test.drop(columns=["Unnamed: 0"])
     
@@ -93,8 +93,8 @@ def equalize_activities_num(sampled_log:pd.DataFrame, log_name:str):
             last["event"] = act
             new_data = pd.DataFrame(last.values, index=[new_index], columns=test.columns)
             test = pd.concat([test, new_data])
-
-        print(test.tail(1))
+            print(test.tail(1))
+        
         test.to_csv(test_file_path)
    
     elif len(train_act) < len(test_act):
@@ -102,8 +102,9 @@ def equalize_activities_num(sampled_log:pd.DataFrame, log_name:str):
             last = sampled_log.tail(1)
             new_index = len(sampled_log)
             last["event"] = act
-            new_data = pd.DataFrame(last.values, index=[new_index], columns=test.columns)
+            new_data = pd.DataFrame(last.values, index=[new_index], columns=sampled_log.columns)
             sampled_log = pd.concat([sampled_log, new_data])
+            print(sampled_log.tail(1))
         
     
     return sampled_log
