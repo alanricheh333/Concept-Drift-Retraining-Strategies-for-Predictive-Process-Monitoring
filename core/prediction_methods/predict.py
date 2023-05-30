@@ -20,7 +20,6 @@ def train_and_predict(train_log_name: str, train_log_path: str, test_log_name: s
 
     Returns - the accuracy and f1-score metrics
     """
-
     # get the training data
     train_data = data.get_data(train_log_name, train_log_path)
 
@@ -33,11 +32,14 @@ def train_and_predict(train_log_name: str, train_log_path: str, test_log_name: s
     # change the timestamp format for this type of prediction
     if prediction_method.value in PredictionMethod.PASQUADIBISCEGLIE.value:
 
-        train_data.logfile.data[TIMESTAMP_IDENTIRIFIER_CSV] = pd.to_datetime(
-            train_data.logfile.data[TIMESTAMP_IDENTIRIFIER_CSV]).strftime('%Y/%m/%d %H:%M:%S.%f')
+        for idx, row in train_data.logfile.data.iterrows():
+            time = pd.to_datetime(row[TIMESTAMP_IDENTIRIFIER_CSV])
+            train_data.logfile.data.at[idx, TIMESTAMP_IDENTIRIFIER_CSV] = time.strftime('%Y/%m/%d %H:%M:%S.%f')
 
-        test_data.logfile.data[TIMESTAMP_IDENTIRIFIER_CSV] = pd.to_datetime(
-            test_data.logfile.data[TIMESTAMP_IDENTIRIFIER_CSV]).strftime('%Y/%m/%d %H:%M:%S.%f')
+        for idx, row in test_data.logfile.data.iterrows():
+            time = pd.to_datetime(row[TIMESTAMP_IDENTIRIFIER_CSV])
+            test_data.logfile.data.at[idx, TIMESTAMP_IDENTIRIFIER_CSV] = time.strftime('%Y/%m/%d %H:%M:%S.%f')
+
 
     # select the percentage of training which is always 100%
     settings.train_percentage = 100

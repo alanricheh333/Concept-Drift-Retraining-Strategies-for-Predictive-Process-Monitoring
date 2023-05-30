@@ -2,6 +2,7 @@ import os
 from typing import Tuple
 import pm4py
 import pandas as pd
+import numpy as np
 from config import root_directory
 from pm4py.objects.log.obj import EventLog
 from core.constants import ACTIVITY_IDENTIFIER_CSV, ACTIVITY_IDENTIFIER_XES, CASE_IDENTIFIER_CSV, CASE_IDENTIFIER_XES, RESOURCE_IDENTIFIER_CSV, RESOURCE_IDENTIFIER_XES, TIMESTAMP_IDENTIRIFIER_CSV, TIMESTAMP_IDENTIRIFIER_XES
@@ -53,6 +54,9 @@ def import_csv_eventlog(full_file_path: str, file_name: str, split_percent: int,
     #read the csv file
     csv_log = pd.read_csv(full_file_path, header=0, nrows=None, delimiter=",", encoding='latin-1')
 
+    # csv_log["role"] = ""
+    csv_log["lifecycle:transition"] = "complete"
+
     #split the data
     train_csv, test_csv, train_xes, test_xes = split_data(csv_log, columns_names, naive, split_percent)
 
@@ -86,7 +90,10 @@ def split_data(log: pd.DataFrame, columns_names: dict[str, str], naive:bool =Tru
     
     #TODO: remove sort in the future if not needed
     #sort values by time
-    #log = log.sort_values("completeTime")
+    log = log.sort_values(columns_names['timestamp'])
+    log[columns_names['timestamp']] = pd.to_datetime(log[columns_names['timestamp']], format="%Y-%m-%d %H:%M:%S")#.dt.strftime("%Y-%m-%d %H:%M:%S")
+    log['startTime'] = pd.to_datetime(log['startTime'], format="%Y-%m-%d %H:%M:%S")#.dt.strftime("%Y-%m-%d %H:%M:%S")
+        
 
     #rename the columns
     try:
@@ -128,6 +135,9 @@ def split_data(log: pd.DataFrame, columns_names: dict[str, str], naive:bool =Tru
                                 TIMESTAMP_IDENTIRIFIER_CSV: TIMESTAMP_IDENTIRIFIER_XES,
                                 RESOURCE_IDENTIFIER_CSV: RESOURCE_IDENTIFIER_XES})
     
+    if train_temp.isnull().values.any():
+        train_temp = train_temp.replace(np.nan, "", regex=True)
+    
     train_xes = pm4py.convert_to_event_log(train_temp)
 
     #convert test set to xes
@@ -135,6 +145,9 @@ def split_data(log: pd.DataFrame, columns_names: dict[str, str], naive:bool =Tru
                                 ACTIVITY_IDENTIFIER_CSV: ACTIVITY_IDENTIFIER_XES,
                                 TIMESTAMP_IDENTIRIFIER_CSV: TIMESTAMP_IDENTIRIFIER_XES,
                                 RESOURCE_IDENTIFIER_CSV: RESOURCE_IDENTIFIER_XES})
+    
+    if test_temp.isnull().values.any():
+        test_temp = test_temp.replace(np.nan, "", regex=True)
     
     test_xes = pm4py.convert_to_event_log(test_temp)
 

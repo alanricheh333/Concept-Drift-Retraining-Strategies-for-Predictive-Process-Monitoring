@@ -1,17 +1,15 @@
-from subprocess import PIPE, Popen
 import pandas as pd
 
 from core.concept_drift.classes.sampling_methods import OnlyLastSampling, PrioritySampling, UniformSampling
 from core.concept_drift.classes.sampling_options import CasesBasedEventsCountSamples, CasesFromEventsSamples, EventsSamples, IncompleteCasesSamples, OnlyFullCasesSamples
 from core.constants import TIMESTAMP_IDENTIRIFIER_CSV, SampleOption, SamplingMethod
 from .classes.sublog import SubLog
-from pm4py.objects.log.obj import EventLog
-import pm4py
 import os
 from config import root_directory
 import numpy as np
 from . import utils
 import math
+from subprocess import check_output
 
 
 def get_sampled_log(event_log: str, window_size: str = "100", all_cases: bool = True, cases_percentage: float = 0.6,
@@ -63,11 +61,51 @@ def get_sampled_log(event_log: str, window_size: str = "100", all_cases: bool = 
 
     #sample buckets then cases from buckets and construct a sampled log
     sampled_log = construct_sample_log(sublogs_with_weights, sample_size, sampling_option)
+
+    sampled_log = equalize_activities_num(sampled_log, event_log)
     
     #export the sampled log
     utils.export_sampled_log(sampled_log)
     
     return sampled_log
+
+
+def equalize_activities_num(sampled_log:pd.DataFrame, log_name:str):
+
+    test_file_path = os.path.join(root_directory, "data", "input", "csv", log_name.replace("_train", "_test") + ".csv")
+    test = pd.read_csv(test_file_path, index_col=0)
+    train_act = sampled_log["event"].unique()
+    test_act = test["event"].unique()
+
+    print(len(train_act))
+    print(len(test_act))
+    dif = list(set(train_act) - set(test_act)) + list(set(test_act) - set(train_act))
+    print("DIF: ", dif)
+    #test = test.drop(columns=["Unnamed: 0"])
+    
+    if len(train_act) > len(test_act):
+        for act in dif:
+            last = test.tail(1)
+            new_index = len(test)
+            last["event"] = act
+            new_data = pd.DataFrame(last.values, index=[new_index], columns=test.columns)
+            test = pd.concat([test, new_data])
+            print(test.tail(1))
+        
+        test.to_csv(test_file_path)
+   
+    elif len(train_act) < len(test_act):
+        for act in dif:
+            last = sampled_log.tail(1)
+            new_index = len(sampled_log)
+            last["event"] = act
+            new_data = pd.DataFrame(last.values, index=[new_index], columns=sampled_log.columns)
+            sampled_log = pd.concat([sampled_log, new_data])
+            print(sampled_log.tail(1))
+        
+    
+    return sampled_log
+
 
 
 def detect_drifts(event_log: str, window_size: str = "100") -> list[SubLog]:
@@ -79,18 +117,15 @@ def detect_drifts(event_log: str, window_size: str = "100") -> list[SubLog]:
 
     Returns - a list of Sublog object
     """
-
-    #open process to connect with the pro drift jar file
-    process = Popen(['java', '-jar', os.path.join(root_directory, "core", "concept_drift", "ProDrift2.5.jar"), '-fp', 
-                     os.path.join(root_directory, "data", "input", "xes", event_log + ".xes"),
-                     '-ddm','events', '-ws', window_size, '-ddnft', '0.0', '-dds', 'high', '-cm', 'activity', '-dcnft', '0.0'], stdout=PIPE, stderr=PIPE)
     
-    #excute the process
-    result = process.communicate()
+    #open process to connect with the pro drift jar file
+    output = check_output(['java', '-jar', os.path.join(root_directory, "core", "concept_drift", "ProDrift2.5.jar"), '-fp', 
+                     os.path.join(root_directory, "data", "input", "xes", event_log + ".xes"),
+                     '-ddm','events', '-ws', window_size, '-ddnft', '0.0', '-dds', 'high', '-cm', 'activity', '-dcnft', '0.0'], text=True)
     
     #get the result as text
-    result_text:str = result[0].decode('utf-8')
-
+    result_text = output
+    print(result_text)
     #retrieve the useful information from the resulting text
     first_split:list = result_text.split('\n\n\n')
     second_split:list = first_split[0].split('\n\n')
