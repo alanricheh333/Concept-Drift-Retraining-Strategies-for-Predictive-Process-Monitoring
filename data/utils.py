@@ -54,6 +54,9 @@ def import_csv_eventlog(full_file_path: str, file_name: str, split_percent: int,
     #read the csv file
     csv_log = pd.read_csv(full_file_path, header=0, nrows=None, delimiter=",", encoding='latin-1')
 
+    # csv_log["role"] = ""
+    csv_log["lifecycle:transition"] = "complete"
+
     #split the data
     train_csv, test_csv, train_xes, test_xes = split_data(csv_log, columns_names, naive, split_percent)
 
@@ -87,7 +90,10 @@ def split_data(log: pd.DataFrame, columns_names: dict[str, str], naive:bool =Tru
     
     #TODO: remove sort in the future if not needed
     #sort values by time
-    log = log.sort_values(TIMESTAMP_IDENTIRIFIER_XES)
+    log = log.sort_values(columns_names['timestamp'])
+    log[columns_names['timestamp']] = pd.to_datetime(log[columns_names['timestamp']], format="%Y-%m-%d %H:%M:%S")#.dt.strftime("%Y-%m-%d %H:%M:%S")
+    log['startTime'] = pd.to_datetime(log['startTime'], format="%Y-%m-%d %H:%M:%S")#.dt.strftime("%Y-%m-%d %H:%M:%S")
+        
 
     #rename the columns
     try:

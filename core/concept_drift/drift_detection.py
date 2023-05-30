@@ -1,18 +1,15 @@
-import copy
-from subprocess import PIPE, Popen
 import pandas as pd
 
 from core.concept_drift.classes.sampling_methods import OnlyLastSampling, PrioritySampling, UniformSampling
 from core.concept_drift.classes.sampling_options import CasesBasedEventsCountSamples, CasesFromEventsSamples, EventsSamples, IncompleteCasesSamples, OnlyFullCasesSamples
 from core.constants import TIMESTAMP_IDENTIRIFIER_CSV, SampleOption, SamplingMethod
 from .classes.sublog import SubLog
-from pm4py.objects.log.obj import EventLog
-import pm4py
 import os
 from config import root_directory
 import numpy as np
 from . import utils
 import math
+from subprocess import check_output
 
 
 def get_sampled_log(event_log: str, window_size: str = "100", all_cases: bool = True, cases_percentage: float = 0.6,
@@ -120,29 +117,14 @@ def detect_drifts(event_log: str, window_size: str = "100") -> list[SubLog]:
 
     Returns - a list of Sublog object
     """
-    from subprocess import check_output
-    # process = subprocess.call(['java', '-jar', os.path.join(root_directory, "core", "concept_drift", "ProDrift2.5.jar"), '-fp', 
-    #                  os.path.join(root_directory, "data", "input", "xes", event_log + ".xes"),
-    #                  '-ddm','events', '-ws', window_size, '-ddnft', '0.0', '-dds', 'high', '-cm', 'activity', '-dcnft', '0.0'])
     
     #open process to connect with the pro drift jar file
     output = check_output(['java', '-jar', os.path.join(root_directory, "core", "concept_drift", "ProDrift2.5.jar"), '-fp', 
                      os.path.join(root_directory, "data", "input", "xes", event_log + ".xes"),
                      '-ddm','events', '-ws', window_size, '-ddnft', '0.0', '-dds', 'high', '-cm', 'activity', '-dcnft', '0.0'], text=True)
     
-    result_text = output
-    # if process.poll() is None or process.poll() == 1:
-    #     stat = process.wait()
-    #     print("waiting...")
-    
-    # #excute the process
-    # result = process.communicate()
-
-    # stat = process.wait()
-    # print("Status: ", stat)
-    
     #get the result as text
-    #result_text:str = result.decode('utf-8')
+    result_text = output
     print(result_text)
     #retrieve the useful information from the resulting text
     first_split:list = result_text.split('\n\n\n')
