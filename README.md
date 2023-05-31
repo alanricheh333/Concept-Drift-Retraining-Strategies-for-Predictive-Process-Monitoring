@@ -28,8 +28,13 @@ The implementation of the thesis Concept Drift Driven Retraining strategies for 
 
 3. Install all required python packages with pip.
 
+    # For windows or linux
     ```
     pip install -r requirements.txt
+    ```
+    # For mac
+    ```
+    pip install -r requirements-max.txt
     ```
 
     - If you're using Mac M1/M2 then you need to follow the instructions here to install tensorflow: https://www.youtube.com/watch?v=5DgWvU0p2bk&ab_channel=JeffHeaton .
@@ -40,6 +45,13 @@ The implementation of the thesis Concept Drift Driven Retraining strategies for 
         pip install cvxopt --no-binary cvxopt
         ```
 	
+4. Install the ProDrift2.5.jar tool in order to run the drift detection method:
+    - Go to: `https://drive.google.com/file/d/1eiG2ShFukTkjlzbcSrMYOZ9wwPO8uVQM/view?usp=sharing`
+    - Install the ProDrift2.5.jar
+    - Add the file to this folder: `/Concept-Drift-Retraining-Strategies-for-Predictive-Process-Monitoring/core/concept_drift/`
+    - Then you can run the method smoothly
+
+
 ## Running the project
 To run the project please follow these steps:
 1. Activate the virtual environemnt:
@@ -50,7 +62,14 @@ To run the project please follow these steps:
    	.\venv\Scripts\activate.ps1
 	```
 
-2. run the project with the command:
+2. Specify the function you want to run from main.py.
+
+3. Run the project with the command:
     ```
 	python main.py
 	```
+
+4. You can also call the functions from the cli.py.
+    ```
+    python cli.py {{the function to be used from cli.py}}
+    ```
